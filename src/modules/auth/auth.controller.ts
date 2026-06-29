@@ -72,3 +72,4 @@ export const authController = {
     signupUser,
     loginUser,
     refreshToken
+}
