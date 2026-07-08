@@ -80,7 +80,7 @@ src
 # Installation
 
 ## Clone the repository
-git clone https://github.com/your-username/devpulse.git
+git clone https://github.com/Sahara138/devpulse.git
 
 
 Move into the project
