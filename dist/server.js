@@ -22,7 +22,10 @@ var config_default = config;
 
 // src/db/index.ts
 var pool = new Pool({
-  connectionString: config_default.connection_string
+  connectionString: config_default.connection_string,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 var initDB = async () => {
   try {
@@ -93,13 +96,14 @@ var jwtHelper = {
 var signupUserIntoDB = async (payload) => {
   const { name, email, password, role } = payload;
   const hashedPassword = await bcrypt.hash(password, 12);
+  console.log("Before INSERT");
   const result = await pool.query(
-    `
-            INSERT INTO users (name,email,password,role) VALUES($1,$2,$3,$4)
-            RETURNING *
-            `,
+    `INSERT INTO users (name,email,password,role)
+   VALUES($1,$2,$3,$4)
+   RETURNING *`,
     [name, email, hashedPassword, role]
   );
+  console.log("After INSERT", result.rows);
   const user = result.rows[0];
   delete user.password;
   return user;
@@ -136,56 +140,26 @@ var loginUserIntoDB = async (payload) => {
   delete user.password;
   return { token: accessToken, user };
 };
-var generateRefreshToken = async (token) => {
-  if (!token) {
-    throw new Error("Unauthorized access");
-  }
-  const decoded = jwtHelper.verifyToken(
-    token,
-    config_default.refresh_secret
-  );
-  const userData = await pool.query(
-    `
-        SELECT * FROM users WHERE email = $1
-        `,
-    [decoded.email]
-  );
-  const user = userData.rows[0];
-  if (userData.rows.length === 0) {
-    throw new Error("User not found!");
-  }
-  const jwtPayload = {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role
-  };
-  const accessToken = jwtHelper.generateToken(
-    jwtPayload,
-    config_default.secret,
-    {
-      expiresIn: "1d"
-    }
-  );
-  return { accessToken };
-};
 var authService = {
   signupUserIntoDB,
-  loginUserIntoDB,
-  generateRefreshToken
+  loginUserIntoDB
+  // generateRefreshToken
 };
 
 // src/modules/auth/auth.controller.ts
 var signupUser = async (req, res) => {
   try {
+    console.log("Request Body:", req.body);
     const result = await authService.signupUserIntoDB(req.body);
+    console.log("Signup Result:", result);
     sendResponse_default(res, {
       statusCode: 201,
       success: true,
       message: "User registered successfully",
-      data: result.rows[0]
+      data: result
     });
   } catch (error) {
+    console.error("Signup Error:", error);
     sendResponse_default(res, {
       statusCode: 500,
       success: false,
@@ -198,11 +172,6 @@ var loginUser = async (req, res) => {
   try {
     const result = await authService.loginUserIntoDB(req.body);
     console.log(result);
-    res.cookie("refreshToken", refreshToken, {
-      secure: false,
-      httpOnly: true,
-      sameSite: "lax"
-    });
     sendResponse_default(res, {
       statusCode: 200,
       success: true,
@@ -218,35 +187,16 @@ var loginUser = async (req, res) => {
     });
   }
 };
-var refreshToken = async (req, res) => {
-  try {
-    const result = await authService.generateRefreshToken(req.cookies.refreshToken);
-    sendResponse_default(res, {
-      statusCode: 200,
-      success: true,
-      message: "Access token generate",
-      data: result
-    });
-  } catch (error) {
-    sendResponse_default(res, {
-      statusCode: 500,
-      success: false,
-      message: error.message,
-      error
-    });
-  }
-};
 var authController = {
   signupUser,
-  loginUser,
-  refreshToken
+  loginUser
+  // refreshToken
 };
 
 // src/modules/auth/auth.route.ts
 var router = Router();
 router.post("/signup", authController.signupUser);
 router.post("/login", authController.loginUser);
-router.post("/refresh-token", authController.refreshToken);
 var authRoute = router;
 
 // src/modules/issues/issue.route.ts
@@ -594,10 +544,10 @@ app.use(globalErrorHandler_default);
 var app_default = app;
 
 // src/server.ts
-var main = () => {
-  initDB();
+var main = async () => {
+  await initDB();
   app_default.listen(config_default.port, () => {
-    console.log(`Example app listening on port ${config_default.port}`);
+    console.log(`Server running on ${config_default.port}`);
   });
 };
 main();
