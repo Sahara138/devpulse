@@ -119,5 +119,5 @@ const loginUserIntoDB = async(payload:{
 export const authService ={
     signupUserIntoDB,
     loginUserIntoDB,
-    // generateRefreshToken
+    generateRefreshToken
 }
