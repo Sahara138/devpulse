@@ -2,31 +2,27 @@ import type { Request, Response } from "express";
 import sendResponse from "../../utility/sendResponse";
 import { authService } from "./auth.service";
 
-const signupUser = async (req: Request, res: Response) => {
-  try {
-    console.log("Request Body:", req.body);
+const signupUser = async(req:Request ,res:Response) => {
+    try{
+        const result = await authService.signupUserIntoDB(req.body);
+        sendResponse(res,{
+            statusCode: 201,
+            success: true,
+            message: "User registered successfully",
+            data: result
+        })
 
-    const result = await authService.signupUserIntoDB(req.body);
-
-    console.log("Signup Result:", result);
-
-    sendResponse(res, {
-      statusCode: 201,
-      success: true,
-      message: "User registered successfully",
-      data: result,
-    });
-  } catch (error: any) {
+    }catch (error: any) {
     console.error("Signup Error:", error);
 
     sendResponse(res, {
-      statusCode: 500,
-      success: false,
-      message: error.message,
-      error: error,
+        statusCode: 500,
+        success: false,
+        message: error.message,
+        error: error
     });
-  }
-};
+}
+}
 const loginUser = async(req:Request ,res:Response) => {
     try{
         const result = await authService.loginUserIntoDB(req.body);

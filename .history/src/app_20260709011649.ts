@@ -24,7 +24,10 @@ app.get('/', (req:Request ,res:Response) => {
             message : "Devpulse Server",
         })
 })
-
+router.get("/test-db", async (req, res) => {
+  const result = await pool.query("SELECT * FROM users");
+  res.json(result.rows);
+});
 
 app.use('/api/auth',authRoute)
 app.use('/api/issues',issueRoute)

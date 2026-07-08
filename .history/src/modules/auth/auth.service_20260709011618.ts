@@ -16,11 +16,11 @@ const signupUserIntoDB = async(payload:{
 
         const hashedPassword = await bcrypt.hash(password,12);
 
-        // const result = await pool.query(`
-        //     INSERT INTO users (name,email,password,role) VALUES($1,$2,$3,$4)
-        //     RETURNING *
-        //     `,
-        // [name,email,hashedPassword,role])
+        const result = await pool.query(`
+            INSERT INTO users (name,email,password,role) VALUES($1,$2,$3,$4)
+            RETURNING *
+            `,
+        [name,email,hashedPassword,role])
         console.log("Before INSERT");
 
 const result = await pool.query(
